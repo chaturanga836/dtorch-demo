@@ -1,0 +1,4 @@
+[project]
+api_url = "http://13.200.160.10"
+workspace_id = 1
+database_id = 1
