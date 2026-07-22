@@ -32,10 +32,16 @@ Optional: `DTORCH_ORG_ID` if your org id is not `1` (used for channel name helpe
 | `npm run storage` | Upload + list MinIO objects via platform API |
 | `npm run notify` | Publish a realtime notification |
 | `npm run subscribe` | Subscribe with Centrifugo (project realtime token) |
-| `npm run cron` | Interactive local cron → loop-insert into `demo_jobs` (platform Beat not ready) |
+| `npm run cron` | Interactive local cron → loop-insert into `demo_jobs` + `runtime.cronPushLogs` (platform Beat not ready) |
 | `npm run db:demo` | Insert/list `demo_jobs` (after migration) |
 | `npm run migrate:sql` | Print migration SQL |
 | `npm run demo` | validate → storage → notify |
+
+### Cron history (Studio monitor)
+
+1. In Studio → Cron, create a job named `demo-jobs` (or set `CRON_JOB_NAME`) with **History log** on.
+2. Run `npm run cron` (or `CRON_AUTO_START=1`).
+3. Each tick pushes a log via `client.runtime.cronPushLogs`; it appears in the Monitor panel when history is enabled.
 
 ## Migrations (project key / secret)
 

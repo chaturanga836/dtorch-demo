@@ -11,18 +11,22 @@ import type { DtorchPlatformClient } from "@dtorch/sdk";
  *  1. User types `start` to begin the schedule
  *  2. Each tick generates a batch of rows in a loop
  *  3. Rows are inserted into test_db.demo_jobs (created by migration)
+ *  4. Tick result is pushed via runtime.cronPushLogs (Studio shows it when
+ *     the cron job has history_log enabled)
  *
  * Env (optional):
  *  CRON_EXPR      default "* * * * *" (every minute)
  *  CRON_BATCH     rows per tick (default 3)
  *  CRON_MAX_TICKS stop after N ticks (0 = run forever)
  *  CRON_AUTO_START=1  skip the interactive prompt
+ *  CRON_JOB_NAME  Studio cron job name for push logs (default "demo-jobs")
  */
 
 const CRON_EXPR = process.env.CRON_EXPR?.trim() || "* * * * *";
 const BATCH = Math.max(1, Number(process.env.CRON_BATCH || "3"));
 const MAX_TICKS = Math.max(0, Number(process.env.CRON_MAX_TICKS || "0"));
 const AUTO_START = process.env.CRON_AUTO_START === "1";
+const CRON_JOB_NAME = process.env.CRON_JOB_NAME?.trim() || "demo-jobs";
 
 let tickCount = 0;
 let running = false;
@@ -88,6 +92,25 @@ async function populateAndInsert(n: number) {
 
   const recent = await withRetry("findMany", () => jobs.findMany({ limit: Math.max(BATCH, 5) }));
   console.log("[cron] recent demo_jobs rows:", recent);
+  return { batchId, ok: true as const };
+}
+
+async function pushHistoryLog(
+  n: number,
+  entry: { message: string; level?: string; metadata?: Record<string, unknown> },
+) {
+  const api = getClient();
+  try {
+    const result = await withRetry("cronPushLogs", () =>
+      api.runtime.cronPushLogs(CRON_JOB_NAME, entry),
+    );
+    console.log(`[cron] history push → ${CRON_JOB_NAME}`, result);
+  } catch (err) {
+    console.warn(`[cron] history push failed (tick #${n}):`, (err as Error).message);
+    console.warn(
+      `  Hint: create Studio cron job "${CRON_JOB_NAME}" and ensure project has cron:log scope.`,
+    );
+  }
 }
 
 async function tick() {
@@ -98,7 +121,12 @@ async function tick() {
   running = true;
   const n = ++tickCount;
   try {
-    await populateAndInsert(n);
+    const { batchId } = await populateAndInsert(n);
+    await pushHistoryLog(n, {
+      message: `tick #${n} complete`,
+      level: "info",
+      metadata: { batchId, rows: BATCH, ok: true },
+    });
   } catch (err) {
     console.error("[cron] tick failed:", (err as Error).message);
     const detail = (err as { detail?: unknown }).detail;
@@ -106,6 +134,11 @@ async function tick() {
     console.error(
       "  Hint: ensure migration is applied (demo_jobs in test_db) and DTORCH_DATABASE_ID is set.",
     );
+    await pushHistoryLog(n, {
+      message: `tick #${n} failed: ${(err as Error).message}`,
+      level: "error",
+      metadata: { ok: false },
+    });
   } finally {
     running = false;
   }
@@ -152,6 +185,7 @@ function promptLoop() {
 
   console.log("Cron demo — inserts into test_db.demo_jobs via local node-cron");
   console.log(`  schedule: ${CRON_EXPR}  |  batch: ${BATCH}  |  maxTicks: ${MAX_TICKS || "∞"}`);
+  console.log(`  history job: ${CRON_JOB_NAME} (Studio cron job; enable History log to see pushes)`);
   console.log("Commands: start | stop | tick | quit\n");
 
   const ask = () => {
