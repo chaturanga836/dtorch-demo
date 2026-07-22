@@ -2,7 +2,7 @@
 
 Small TypeScript demo for **DT Orch** using project key + secret only.
 
-Customer apps never use Keycloak. Studio JWT is only for migrations/DDL.
+Customer apps never use Keycloak. Project key + secret cover runtime **and** migrations.
 
 ## Setup
 
@@ -37,15 +37,19 @@ Optional: `DTORCH_ORG_ID` if your org id is not `1` (used for channel name helpe
 | `npm run migrate:sql` | Print migration SQL |
 | `npm run demo` | validate → storage → notify |
 
-## Migrations (Studio JWT)
+## Migrations (project key / secret)
 
-Project credentials cannot apply DDL. Use the Python CLI:
+Same credentials as the app SDK. Put them in `.env` — the CLI loads it automatically:
 
 ```powershell
-py -m venv .venv
-.\.venv\Scripts\pip install D:\python\etl-deployment\sdk\python D:\python\etl-deployment\cli
-$env:DTORCH_ACCESS_TOKEN="<Keycloak access token from Studio>"
-.\.venv\Scripts\dtorch.exe db push -y
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+pip install dtorch-cli
+# Until PyPI: pip install ..\python\etl-deployment\sdk\python ..\python\etl-deployment\cli
+
+dtorch init
+dtorch link --api-url http://13.200.160.10 --workspace 1 --database 1
+dtorch db push -y
 ```
 
 Then:
@@ -53,6 +57,8 @@ Then:
 ```powershell
 npm run db:demo
 ```
+
+Requires an API build that accepts project credentials on `/migrations` and `/migrations/apply`.
 
 ## Current host notes (`http://13.200.160.10`)
 

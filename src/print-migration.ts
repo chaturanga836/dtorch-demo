@@ -12,9 +12,10 @@ const migrationPath = join(
   "20260718100000_create_demo_jobs.sql",
 );
 
-console.log("Sample migration SQL (apply with dtorch CLI + DTORCH_ACCESS_TOKEN):\n");
+console.log("Sample migration SQL (apply with dtorch CLI + project key/secret):\n");
 console.log(readFileSync(migrationPath, "utf8"));
 console.log("\nCommands:");
-console.log("  pip install ../python/etl-deployment/sdk/python ../python/etl-deployment/cli");
+console.log("  pip install dtorch-cli");
 console.log("  dtorch init && dtorch link --api-url $DTORCH_API_URL --workspace 1 --database 1");
-console.log("  $env:DTORCH_ACCESS_TOKEN='<studio jwt>'; dtorch db push -y");
+console.log("  dtorch db push -y   # reads DTORCH_PROJECT_KEY/SECRET from .env");
+console.log("  # if dtorch not on PATH: python -m dtorch_cli ...");
