@@ -32,7 +32,7 @@ Optional: `DTORCH_ORG_ID` if your org id is not `1` (used for channel name helpe
 | `npm run storage` | Upload + list MinIO objects via platform API |
 | `npm run notify` | Publish a realtime notification |
 | `npm run subscribe` | Subscribe with Centrifugo (project realtime token) |
-| `npm run cron` | Local `node-cron` every minute (platform Beat not ready) |
+| `npm run cron` | Interactive local cron → loop-insert into `demo_jobs` (platform Beat not ready) |
 | `npm run db:demo` | Insert/list `demo_jobs` (after migration) |
 | `npm run migrate:sql` | Print migration SQL |
 | `npm run demo` | validate → storage → notify |
